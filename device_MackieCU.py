@@ -34,10 +34,18 @@ MackieCUNote_Marker = 0x48
 MackieCUNote_Zoom = 0x64
 MackieCUNote_Move = 0x46
 MackieCUNote_Window = 0x4C
+
+MackieCUNote_Pan = 0x28
+MackieCUNote_Stereo = 0x2A
+MackieCUNote_Sends = 0x29
+MackieCUNote_FX = 0x2B
+MackieCUNote_EQ = 0x2C
+MackieCUNote_Free = 0x2D
+
 # Mackie CU pages
 MackieCUPage_Pan = 0
-MackieCUPage_Stereo = 1
-MackieCUPage_Sends = 2
+MackieCUPage_Stereo = 2
+MackieCUPage_Sends = 1
 MackieCUPage_FX = 3
 MackieCUPage_EQ = 4
 MackieCUPage_Free = 5
@@ -94,7 +102,7 @@ class TMackieCU():
 		self.MeterMax = 0
 		self.ActivityMax = 0
 
-		self.MackieCU_PageNameT = ('Panning                                (press to reset)', 'Stereo separation                      (press to reset)',  'Sends for selected track              (press to enable)', 'Effects for selected track            (press to enable)', 'EQ for selected track                  (press to reset)',  'Lotsa free controls')
+		self.MackieCU_PageNameT = ('Panning                                (press to reset)', 'Sends for selected track              (press to enable)', 'Stereo separation                      (press to reset)', 'Effects for selected track            (press to enable)', 'EQ for selected track                  (press to reset)',  'Lotsa free controls')
 		self.MackieCU_MeterModeNameT = ('Horizontal meters mode', 'Vertical meters mode', 'Disabled meters mode')
 
 		self.FreeEventID = 400
@@ -372,7 +380,7 @@ class TMackieCU():
 								event.outEv = event.inEv
 								self.Jog(event)
 
-					elif event.data1 in [0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D]: # self.Page
+					elif event.data1 in [MackieCUNote_Pan, MackieCUNote_Sends, MackieCUNote_Stereo, MackieCUNote_FX, MackieCUNote_EQ, MackieCUNote_Free]: # self.Page
 						self.SliderHoldCount +=  -1 + (int(event.data2 > 0) * 2)
 						if event.data2 > 0:
 							n = event.data1 - 0x28
