@@ -1,5 +1,5 @@
 # name=Behringer X-Touch Extender
-# url=
+# url=https://github.com/IgneButene/XTouch-FLStudio
 # receiveFrom=Mackie Control Universal
 # supportedDevices=X-Touch-Ext
 

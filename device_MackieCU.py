@@ -1,5 +1,5 @@
 # name=Behringer X-Touch
-# url=
+# url=https://github.com/IgneButene/XTouch-FLStudio
 # supportedDevices=X-Touch
 
 import patterns
