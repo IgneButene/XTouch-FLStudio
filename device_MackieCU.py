@@ -1,4 +1,4 @@
-# name=Mackie Control Universal
+# name=Behringer X-Touch
 # url=
 # supportedDevices=X-Touch
 

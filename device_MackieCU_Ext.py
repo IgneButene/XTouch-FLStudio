@@ -1,4 +1,4 @@
-# name=Mackie Control Universal Extender
+# name=Behringer X-Touch Extender
 # url=
 # receiveFrom=Mackie Control Universal
 # supportedDevices=X-Touch-Ext
