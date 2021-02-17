@@ -22,7 +22,16 @@ MackieCU_KnobOffOnT = [(midi.MIDI_CONTROLCHANGE + (1 << 6)) << 16, midi.MIDI_CON
 MackieCU_nFreeTracks = 64
 
 #const
-MackieCUNote_Undo = 0x3C
+MackieCUNote_F1 = 0x36
+MackieCUNote_F2 = 0x37
+MackieCUNote_F3 = 0x38
+MackieCUNote_F4 = 0x39
+MackieCUNote_F5 = 0x3A
+MackieCUNote_F6 = 0x3B
+MackieCUNote_F7 = 0x3C
+MackieCUNote_F8 = 0x3D
+
+MackieCUNote_Undo = 0x51
 MackieCUNote_Pat = 0x3E
 MackieCUNote_Mix = 0x3F
 MackieCUNote_Chan = 0x40
@@ -502,7 +511,7 @@ class TMackieCU():
 						if event.data2 > 0:
 							ui.showWindow(midi.widChannelRack)
 
-					elif event.data1 == 0x51: # menu
+					elif event.data1 == 0x3D: # menu
 						transport.globalTransport(midi.FPT_Menu, int(event.data2 > 0) * 2, event.pmeFlags)
 						if event.data2 > 0:
 							self.OnSendTempMsg('Menu', 10)
@@ -512,7 +521,7 @@ class TMackieCU():
 						if event.data2 > 0:
 							self.OnSendTempMsg('Tools', 10)
 
-					elif event.data1 == 0x3D: # undo/redo
+					elif event.data1 == MackieCUNote_Undo: # undo/redo
 						if (transport.globalTransport(midi.FPT_Undo, int(event.data2 > 0) * 2, event.pmeFlags) == midi.GT_Global) & (event.data2 > 0):
 							self.OnSendTempMsg(ui.getHintMsg() + ' (level ' + GetUndoLevelStr + ')')
 
