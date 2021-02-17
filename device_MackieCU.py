@@ -12,6 +12,7 @@ import launchMapPages
 import playlist
 import ui
 import channels
+import plugins
 
 import midi
 import utils
@@ -635,8 +636,11 @@ class TMackieCU():
 			s = ''
 			if self.Page == MackieCUPage_Free:
 				s = '  ' + utils.Zeros(self.ColT[m].TrackNum + 1, 2, ' ')
+			elif self.Page == MackieCUPage_FX:
+				s = DisplayName(self.ColT[m].TrackName)
 			else:
 				s = mixer.getTrackName(self.ColT[m].TrackNum, 6)
+				
 			for n in range(1, 7 - len(s) + 1):
 				s = s + ' '
 			s1 = s1 + s
@@ -851,6 +855,8 @@ class TMackieCU():
 					self.ColT[m].KnobName = ''
 					self.ColT[m].KnobMode = 1 # parameter, pan, volume, off
 					self.ColT[m].KnobCenter = -1
+					
+					self.ColT[m].TrackName = ''
 
 					if self.Page == MackieCUPage_Pan:
 						self.ColT[m].KnobEventID = self.ColT[m].BaseEventID + midi.REC_Mixer_Pan
@@ -872,7 +878,7 @@ class TMackieCU():
 							self.ColT[m].KnobMode = 2
 					elif self.Page == MackieCUPage_FX:
 						self.ColT[m].CurID = mixer.getTrackPluginId(mixer.trackNumber(), m)
-						self.ColT[m].KnobEventID = CurID + midi.REC_Plug_MixLevel
+						self.ColT[m].KnobEventID = self.ColT[m].CurID + midi.REC_Plug_MixLevel
 						s = mixer.getEventIDName(self.ColT[m].KnobEventID)
 						self.ColT[m].KnobName = s
 						self.ColT[m].KnobResetValue = midi.FromMIDI_Max
@@ -882,6 +888,8 @@ class TMackieCU():
 						if IsValid:
 							self.ColT[m].KnobMode = 2
 							self.ColT[m].KnobPressEventID = CurID + midi.REC_Plug_Mute
+							
+							self.ColT[m].TrackName = plugins.getPluginName(mixer.trackNumber(), m)
 						else:
 							self.ColT[m].KnobMode = 4
 						self.ColT[m].KnobCenter = int(IsValid & IsEnabledAuto)
@@ -1109,7 +1117,20 @@ def OnIdle():
 def OnWaitingForInput():
 	MackieCU.OnWaitingForInput()
 
-
-
+# Display shortened name to fit to 7 characters (e.g., Fruity Chorus = FChorus)
+def DisplayName(name):
+	if name == '':
+		return ''
+	
+	words = name.split()
+	shortName = ''
+	letterCount = 7 // len(words)
+	for w in words:
+		shortName += w[0]
+	
+	lastWord = words[len(words)-1]
+	shortName += lastWord[1:]
+			
+	return shortName[0:7]
 
 
