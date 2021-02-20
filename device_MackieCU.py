@@ -302,14 +302,29 @@ class TMackieCU():
 
 		elif (self.JogSource == MackieCUNote_Inputs) & (event.outEv == 0):
 			self.SetFirstTrack(mixer.trackNumber())
+			ui.showWindow(midi.widMixer)
+			ui.setFocused(midi.widMixer)
 
 		elif (self.JogSource == MackieCUNote_MidiTracks) | (self.JogSource == MackieCUNote_Inputs) | (self.JogSource == MackieCUNote_AudioTracks):
 			self.TrackSel(self.JogSource - MackieCUNote_MidiTracks, event.outEv)
+			if self.JogSource == MackieCUNote_MidiTracks:
+				ui.showWindow(midi.widPlaylist)
+				ui.setFocused(midi.widPlaylist)
+			elif self.JogSource == MackieCUNote_Inputs:
+				ui.showWindow(midi.widMixer)
+				ui.setFocused(midi.widMixer)
+			elif self.JogSource == MackieCUNote_AudioTracks:
+				ui.showWindow(midi.widChannelRack)
+				ui.setFocused(midi.widChannelRack)
 
 		elif (self.JogSource == MackieCUNote_Outputs):
+			ui.showWindow(midi.widMixer)
+			ui.setFocused(midi.widMixer)
 			self.SetFirstTrack(0 + event.outEv)
 
 		elif (self.JogSource == MackieCUNote_Buses):
+			ui.showWindow(midi.widMixer)
+			ui.setFocused(midi.widMixer)
 			x = 125
 			while (x > 0):
 				trackName = mixer.getTrackName(x)
@@ -320,6 +335,7 @@ class TMackieCU():
 
 		elif self.JogSource == MackieCUNote_User:
 			ui.showWindow(midi.widBrowser)
+			ui.setFocused(midi.widBrowser)
 
 		elif self.JogSource == MackieCUNote_AudioInst:
 
@@ -420,6 +436,7 @@ class TMackieCU():
 
 					if self.Control & (event.data1 in [MackieCUNote_F1, MackieCUNote_F2, MackieCUNote_F3, MackieCUNote_F4, MackieCUNote_F5, MackieCUNote_F6, MackieCUNote_F7, MackieCUNote_F8]):
 						ui.showWindow(midi.widPlaylist)
+						ui.setFocused(midi.widPlaylist)
 						transport.globalTransport(midi.FPT_Menu, int(event.data2 > 0) * 2, event.pmeFlags)
 						time.sleep(0.1)
 						f = int(1 + event.data1 - MackieCUNote_F1)
@@ -696,6 +713,7 @@ class TMackieCU():
 							i = event.data1 - MackieCUNote_Select1
 
 							ui.showWindow(midi.widMixer)
+							ui.setFocused(midi.widMixer)
 							mixer.setTrackNumber(self.ColT[i].TrackNum, midi.curfxScrollToMakeVisible | midi.curfxMinimalLatencyUpdate)
 
 							if self.Control: # Link channel to track
@@ -1237,8 +1255,14 @@ class TMackieCU():
 			# self.Flip
 			device.midiOutNewMsg((0x32 << 8) + midi.TranzPort_OffOnT[self.Flip], 18)
 			# focused windows
-			device.midiOutNewMsg((MackieCUNote_Read << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widBrowser)], 20)
-			device.midiOutNewMsg((MackieCUNote_Write << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 21)
+			device.midiOutNewMsg((MackieCUNote_User << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widBrowser)], 20)
+			device.midiOutNewMsg((MackieCUNote_MidiTracks << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widPlaylist)], 21)
+			device.midiOutNewMsg((MackieCUNote_Inputs << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 22)
+			device.midiOutNewMsg((MackieCUNote_AudioTracks << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 23)
+			device.midiOutNewMsg((MackieCUNote_Buses << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 24)
+			device.midiOutNewMsg((MackieCUNote_Outputs << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 25)
+
+			#device.midiOutNewMsg((MackieCUNote_Write << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 21)
 
 
 	def SetJogSource(self, Value):
