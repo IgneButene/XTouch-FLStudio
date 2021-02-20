@@ -22,6 +22,16 @@ MackieCU_KnobOffOnT = [(midi.MIDI_CONTROLCHANGE + (1 << 6)) << 16, midi.MIDI_CON
 MackieCU_nFreeTracks = 64
 
 #const
+#Select
+MackieCUNote_Select1 = 0x18
+MackieCUNote_Select2 = 0x19
+MackieCUNote_Select3 = 0x1A
+MackieCUNote_Select4 = 0x1B
+MackieCUNote_Select5 = 0x1C
+MackieCUNote_Select6 = 0x1D
+MackieCUNote_Select7 = 0x1E
+MackieCUNote_Select8 = 0x1F
+
 # F1-F8 buttons
 MackieCUNote_F1 = 0x36
 MackieCUNote_F2 = 0x37
@@ -40,19 +50,19 @@ MackieCUNote_Enter = 0x53
 
 # Modify
 MackieCUNote_Shift = 0x46
-MackieCUNote_Option = 0x47 #TODO
-MackieCUNote_Control = 0x48 #TODO
-MackieCUNote_Alt = 0x49 #TODO
+MackieCUNote_Option = 0x47
+MackieCUNote_Control = 0x48
+MackieCUNote_Alt = 0x49
 
 # Sections
-MackieCUNote_MidiTracks = 0x3E
-MackieCUNote_Inputs = 0x3F
-MackieCUNote_AudioTracks = 0x40
+MackieCUNote_MidiTracks = 0x3E #Patters
+MackieCUNote_Inputs = 0x3F #Mixer Tracks
+MackieCUNote_AudioTracks = 0x40 #Channels
 MackieCUNote_AudioInst = 0x41 #TODO
 MackieCUNote_Aux = 0x42 #TODO
-MackieCUNote_Buses = 0x43 #TODO
-MackieCUNote_Outputs = 0x44 #TODO
-MackieCUNote_User = 0x45 #TODO
+MackieCUNote_Buses = 0x43 #Sends
+MackieCUNote_Outputs = 0x44 #Master
+MackieCUNote_User = 0x45 #Browser
 
 # Automation
 MackieCUNote_Read = 0x4A #TODO
@@ -290,13 +300,31 @@ class TMackieCU():
 			if s != "":
 				self.OnSendTempMsg(self.ArrowsStr + 'Current window: ' + s, 500)
 
+		elif (self.JogSource == MackieCUNote_Inputs) & (event.outEv == 0):
+			self.SetFirstTrack(mixer.trackNumber())
+
 		elif (self.JogSource == MackieCUNote_MidiTracks) | (self.JogSource == MackieCUNote_Inputs) | (self.JogSource == MackieCUNote_AudioTracks):
 			self.TrackSel(self.JogSource - MackieCUNote_MidiTracks, event.outEv)
+
+		elif (self.JogSource == MackieCUNote_Outputs):
+			self.SetFirstTrack(0 + event.outEv)
+
+		elif (self.JogSource == MackieCUNote_Buses):
+			x = 125
+			while (x > 0):
+				trackName = mixer.getTrackName(x)
+				x -= 1
+				if trackName.startswith('Insert '):
+					break
+			self.SetFirstTrack(x+2)
+
+		elif self.JogSource == MackieCUNote_User:
+			ui.showWindow(midi.widBrowser)
 
 		elif self.JogSource == MackieCUNote_AudioInst:
 
 			if event.outEv != 0:
-				channels.processRECEvent(midi.REC_Tempo, channels.incEventValue(midi.REC_Tempo, event.outEv, midi.EKRes), PME_RECFlagsT[int(event.pmeFlags & PME_LiveInput != 0)] & (not midi.REC_FromMIDI))
+				channels.processRECEvent(midi.REC_Tempo, channels.incEventValue(midi.REC_Tempo, event.outEv, midi.EKRes), midi.PME_RECFlagsT[int(event.pmeFlags & midi.PME_LiveInput != 0)] & (not midi.REC_FromMIDI))
 			self.OnSendTempMsg(self.ArrowsStr + 'Tempo: ' + mixer.getEventIDValueString(midi.REC_Tempo, mixer.getCurrentTempo()), 500)
 
 		elif self.JogSource in [MackieCUNote_Aux, MackieCUNote_Buses, MackieCUNote_Outputs, MackieCUNote_User]:
@@ -305,7 +333,7 @@ class TMackieCU():
 
 			if event.outEv != 0:
 				event.isIncrement = 1
-				s = Char(0x7E + int(event.outEv < 0))
+				s = chr(0x7E + int(event.outEv < 0))
 				self.OnSendTempMsg(self.ArrowsStr + 'Free jog ' + str(event.data1) + ': ' + s, 500)
 				device.processMIDICC(event)
 				return
@@ -597,7 +625,7 @@ class TMackieCU():
 							else:
 								self.SetKnobValue(n, midi.MaxInt)
 
-					elif (event.data1 >= 0) & (event.data1 <= 0x1F): # free hold buttons
+					elif (event.data1 >= 0) & (event.data1 <= MackieCUNote_Select8): # free hold buttons
 						if self.Page == MackieCUPage_Free:
 							i = event.data1 % 8
 							self.ColT[i].Peak = self.ActivityMax
@@ -663,12 +691,15 @@ class TMackieCU():
 					elif (event.data1 == MackieCUNote_Marker) & (self.Control): # marker add
 						if (transport.globalTransport(midi.FPT_AddMarker + int(self.Shift), int(event.data2 > 0) * 2, event.pmeFlags) == midi.GT_Global) & (event.data2 > 0):
 							self.OnSendTempMsg(ui.getHintMsg())
-					elif (event.data1 >= 0x18) & (event.data1 <= 0x1F): # select mixer track
+					elif (event.data1 >= MackieCUNote_Select1) & (event.data1 <= MackieCUNote_Select8): # select mixer track
 						if event.data2 > 0:
-							i = event.data1 - 0x18
+							i = event.data1 - MackieCUNote_Select1
 
 							ui.showWindow(midi.widMixer)
 							mixer.setTrackNumber(self.ColT[i].TrackNum, midi.curfxScrollToMakeVisible | midi.curfxMinimalLatencyUpdate)
+
+							if self.Control: # Link channel to track
+								mixer.linkTrackToChannel(midi.ROUTE_ToThis)
 
 					elif (event.data1 >= 0x8) & (event.data1 <= 0xF): # solo
 						if event.data2 > 0:
@@ -727,11 +758,11 @@ class TMackieCU():
 		self.LastTimeMsg = TempMsg
 
 	def SendAssignmentMsg(self, Msg):
+		if (len(Msg) < 3):
+			Msg = ' ' + Msg
 
-		s_ansi = Msg + chr(0) #AnsiString(Msg);
-		if device.isAssigned():
-			for m in range(1, 3):
-				device.midiOutMsg(midi.MIDI_CONTROLCHANGE + ((0x4C - m) << 8) + (ord(s_ansi[m]) << 16))
+		device.midiOutMsg(midi.MIDI_CONTROLCHANGE + ((0x4B) << 8) + (ord(Msg[1]) << 16))
+		device.midiOutMsg(midi.MIDI_CONTROLCHANGE + ((0x4A) << 8) + (ord(Msg[2]) << 16))
 
 	def UpdateTempMsg(self):
 
@@ -858,7 +889,7 @@ class TMackieCU():
 		if self.Page !=  MackieCUPage_Free:
 			if device.isAssigned():
 				for m in range(0, len(self.ColT) - 1):
-					device.midiOutNewMsg(((0x18 + m) << 8) + midi.TranzPort_OffOnT[self.ColT[m].TrackNum == mixer.trackNumber()], self.ColT[m].LastValueIndex + 4)
+					device.midiOutNewMsg(((MackieCUNote_Select1 + m) << 8) + midi.TranzPort_OffOnT[self.ColT[m].TrackNum == mixer.trackNumber()], self.ColT[m].LastValueIndex + 4)
 
 			if self.Page in [MackieCUPage_Sends, MackieCUPage_FX]:
 				self.UpdateColT()
@@ -919,10 +950,11 @@ class TMackieCU():
 					else:
 						data1 = 0
 
-						# Plugin Parameter Value
-						paramValue = plugins.getParamValue(int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
-						data1 = int(paramValue)
-						#TODO fix when getParamValue starts working
+						if self.Page == MackieCUPage_FX:
+							# Plugin Parameter Value
+							paramValue = plugins.getParamValue(int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
+							data1 = int(paramValue)
+							#TODO fix when getParamValue starts working
 
 					device.midiOutNewMsg(midi.MIDI_CONTROLCHANGE + ((MackieCUNote_Channel_Previous + Num) << 8) + (data1 << 16), self.ColT[Num].LastValueIndex)
 
