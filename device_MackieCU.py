@@ -305,7 +305,7 @@ class TMackieCU():
 			ui.showWindow(midi.widMixer)
 			ui.setFocused(midi.widMixer)
 
-		elif (self.JogSource == MackieCUNote_MidiTracks) | (self.JogSource == MackieCUNote_Inputs) | (self.JogSource == MackieCUNote_AudioTracks):
+		elif (self.JogSource == MackieCUNote_MidiTracks) | (self.JogSource == MackieCUNote_Inputs):
 			self.TrackSel(self.JogSource - MackieCUNote_MidiTracks, event.outEv)
 			if self.JogSource == MackieCUNote_MidiTracks:
 				ui.showWindow(midi.widPlaylist)
@@ -313,9 +313,10 @@ class TMackieCU():
 			elif self.JogSource == MackieCUNote_Inputs:
 				ui.showWindow(midi.widMixer)
 				ui.setFocused(midi.widMixer)
-			elif self.JogSource == MackieCUNote_AudioTracks:
-				ui.showWindow(midi.widChannelRack)
-				ui.setFocused(midi.widChannelRack)
+		elif self.JogSource == MackieCUNote_AudioInst:
+			ui.showWindow(midi.widChannelRack)
+			ui.setFocused(midi.widChannelRack)
+			self.TrackSel(2, event.outEv)
 
 		elif (self.JogSource == MackieCUNote_Outputs):
 			ui.showWindow(midi.widMixer)
@@ -1258,7 +1259,7 @@ class TMackieCU():
 			device.midiOutNewMsg((MackieCUNote_User << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widBrowser)], 20)
 			device.midiOutNewMsg((MackieCUNote_MidiTracks << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widPlaylist)], 21)
 			device.midiOutNewMsg((MackieCUNote_Inputs << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 22)
-			device.midiOutNewMsg((MackieCUNote_AudioTracks << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 23)
+			device.midiOutNewMsg((MackieCUNote_AudioInst << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 23)
 			device.midiOutNewMsg((MackieCUNote_Buses << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 24)
 			device.midiOutNewMsg((MackieCUNote_Outputs << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 25)
 
