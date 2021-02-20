@@ -76,6 +76,12 @@ MackieCUNote_Stop = 0x5D
 MackieCUNote_Start = 0x5E
 MackieCUNote_Record = 0x5F
 
+# Channels
+MackieCUNote_Bank_Previous = 0x2E
+MackieCUNote_Bank_Next = 0x2F
+MackieCUNote_Channel_Previous = 0x30
+MackieCUNote_Channel_Next = 0x31
+
 # Encoder Assign
 MackieCUNote_Pan = 0x28
 MackieCUNote_Stereo = 0x2A
@@ -404,25 +410,37 @@ class TMackieCU():
 					elif event.data1 == 0x35: # time format
 						if event.data2 > 0:
 							ui.setTimeDispMin()
-					elif (event.data1 == 0x2E) | (event.data1 == 0x2F): # mixer bank
+					elif (event.data1 == MackieCUNote_Bank_Previous) | (event.data1 == MackieCUNote_Bank_Next): # mixer bank
 						if event.data2 > 0:
-							self.SetFirstTrack(self.FirstTrackT[self.FirstTrack] - 8 + int(event.data1 == 0x2F) * 16)
+							self.SetFirstTrack(self.FirstTrackT[self.FirstTrack] - 8 + int(event.data1 == MackieCUNote_Bank_Next) * 16)
 							device.dispatch(0, midi.MIDI_NOTEON + (event.data1 << 8) + (event.data2 << 16))
 
-					elif (event.data1 == 0x30) | (event.data1 == 0x31):
+							if (self.CurPluginID != -1): # Selected Plugin
+								if (event.data1 == MackieCUNote_Bank_Previous) & (self.PluginParamOffset >= 8):
+									self.PluginParamOffset -= 8
+								elif (event.data1 == MackieCUNote_Bank_Next) & (self.PluginParamOffset + 8 < plugins.getParamCount(mixer.trackNumber(), self.CurPluginID + self.CurPluginOffset) - 8):
+									self.PluginParamOffset += 8
+							else: # No Selected Plugin
+								if (event.data1 == MackieCUNote_Bank_Previous) & (self.CurPluginOffset >= 2):
+									self.CurPluginOffset -= 2
+								elif (event.data1 == MackieCUNote_Bank_Next) & (self.CurPluginOffset < 2):
+									self.CurPluginOffset += 2
+
+
+					elif (event.data1 == MackieCUNote_Channel_Previous) | (event.data1 == MackieCUNote_Channel_Next):
 						if event.data2 > 0:
-							self.SetFirstTrack(self.FirstTrackT[self.FirstTrack] - 1 + int(event.data1 == 0x31) * 2)
+							self.SetFirstTrack(self.FirstTrackT[self.FirstTrack] - 1 + int(event.data1 == MackieCUNote_Channel_Next) * 2)
 							device.dispatch(0, midi.MIDI_NOTEON + (event.data1 << 8) + (event.data2 << 16) )
 							
 							if (self.CurPluginID != -1): # Selected Plugin
-								if (event.data1 == 0x30) & (self.PluginParamOffset > 0):
+								if (event.data1 == MackieCUNote_Channel_Previous) & (self.PluginParamOffset > 0):
 									self.PluginParamOffset -= 1
-								elif (event.data1 == 0x31) & (self.PluginParamOffset < plugins.getParamCount(mixer.trackNumber(), self.CurPluginID + self.CurPluginOffset) - 8):
+								elif (event.data1 == MackieCUNote_Channel_Next) & (self.PluginParamOffset < plugins.getParamCount(mixer.trackNumber(), self.CurPluginID + self.CurPluginOffset) - 8):
 									self.PluginParamOffset += 1
 							else: # No Selected Plugin
-								if (event.data1 == 0x30) & (self.CurPluginOffset > 0):
+								if (event.data1 == MackieCUNote_Channel_Previous) & (self.CurPluginOffset > 0):
 									self.CurPluginOffset -= 1
-								elif (event.data1 == 0x31) & (self.CurPluginOffset < 2):
+								elif (event.data1 == MackieCUNote_Channel_Next) & (self.CurPluginOffset < 2):
 									self.CurPluginOffset += 1
 
 					elif event.data1 == 0x32: # self.Flip
@@ -866,7 +884,7 @@ class TMackieCU():
 						m = 1 + round(d * 10)
 					else:
 						m = int(self.ColT[Num].KnobHeld) * (11 + (2 << 4))
-					device.midiOutNewMsg(midi.MIDI_CONTROLCHANGE + ((0x30 + Num) << 8) + (m << 16), self.ColT[Num].LastValueIndex)
+					device.midiOutNewMsg(midi.MIDI_CONTROLCHANGE + ((MackieCUNote_Channel_Previous + Num) << 8) + (m << 16), self.ColT[Num].LastValueIndex)
 					# buttons
 					for n in range(0, 4)            :
 						d = mixer.remoteFindEventValue(baseID + 3 + n)
@@ -902,10 +920,11 @@ class TMackieCU():
 						data1 = 0
 
 						# Plugin Parameter Value
-						data1 = plugins.getParamValue(Num + self.PluginParamOffset, mixer.trackNumber(), self.CurPluginID + self.CurPluginOffset)
-						print(str(data1))
+						paramValue = plugins.getParamValue(int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
+						data1 = int(paramValue)
+						#TODO fix when getParamValue starts working
 
-					device.midiOutNewMsg(midi.MIDI_CONTROLCHANGE + ((0x30 + Num) << 8) + (data1 << 16), self.ColT[Num].LastValueIndex)
+					device.midiOutNewMsg(midi.MIDI_CONTROLCHANGE + ((MackieCUNote_Channel_Previous + Num) << 8) + (data1 << 16), self.ColT[Num].LastValueIndex)
 
 					# arm, solo, mute
 					device.midiOutNewMsg( ((0x00 + Num) << 8) + midi.TranzPort_OffOnBlinkT[int(mixer.isTrackArmed(self.ColT[Num].TrackNum)) * (1 + int(transport.isRecording()))], self.ColT[Num].LastValueIndex + 1)
