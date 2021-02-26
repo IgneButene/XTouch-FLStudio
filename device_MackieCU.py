@@ -116,6 +116,9 @@ MackieCUPage_FX = 3
 MackieCUPage_EQ = 4
 MackieCUPage_Free = 5
 
+ExtenderLeft = 0
+ExtenderRight = 1
+
 OffOnStr = ('off', 'on')
 
 class TMackieCol:
@@ -142,7 +145,6 @@ class TMackieCol:
 class TMackieCU():
 	def __init__(self):
 		self.LastMsgLen =  MackieCUNote_F2
-		self.LastMsgT = [bytearray(self.LastMsgLen), bytearray(self.LastMsgLen)]
 		self.TempMsgT = ["", ""]
 		self.LastTimeMsg = bytearray(10)
 
@@ -174,11 +176,13 @@ class TMackieCU():
 
 		self.MackieCU_PageNameT = ('Panning                                (press to reset)', 'Sends for selected track              (press to enable)', 'Stereo separation                      (press to reset)', 'Effects for selected track            (press to enable)', 'EQ for selected track                  (press to reset)',  'Lotsa free controls')
 		self.MackieCU_MeterModeNameT = ('Horizontal meters mode', 'Vertical meters mode', 'Disabled meters mode')
+		self.MackieCU_ExtenderPosT = ('left', 'right')
 
 		self.FreeEventID = 400
 		self.ArrowsStr = chr(0x7F) + chr(0x7E) + chr(0x32)
 		self.AlphaTrack_SliderMax = round(13072 * 16000 / 12800)
-		
+		self.ExtenderPos = ExtenderLeft
+
 		self.CurPluginID = -1
 
 	def OnInit(self):
@@ -194,8 +198,7 @@ class TMackieCU():
 		for m in range (0, len(self.FreeCtrlT)):
 			self.FreeCtrlT[m] = 8192 # default free faders to center
 		if device.isAssigned():
-			for x in range(0, 8):
-				device.midiOutSysex(bytes([0xF0, 0x00, 0x00, 0x66, 0x14, 0x0C, 1, 0xF7]))
+			device.midiOutSysex(bytes([0xF0, 0x00, 0x00, 0x66, 0x14, 0x0C, 1, 0xF7]))
 
 		self.SetBackLight(2) # backlight timeout to 2 minutes
 		self.UpdateClicking()
@@ -220,7 +223,6 @@ class TMackieCU():
 			self.SendMsg('', 1)
 			self.SendTimeMsg('')
 			self.SendAssignmentMsg('  ')
-			self.EmptyLastMsgT()
 
 		print('OnDeInit ready')
 
@@ -254,12 +256,12 @@ class TMackieCU():
 		device.baseTrackSelect(Index, Step)
 		if Index == 0:
 			s = channels.getChannelName(channels.channelNumber())
-			self.OnSendTempMsg(self.ArrowsStr + 'Channel: ' + s, 500);
+			self.OnSendTempMsg(self.ArrowsStr + 'Channel: ' + s, 500)
 		elif Index == 1:
 			self.OnSendTempMsg(self.ArrowsStr + 'Mixer track: ' + mixer.getTrackName(mixer.trackNumber()), 500);
 		elif Index == 2:
 			s = patterns.getPatternName(patterns.patternNumber())
-			self.OnSendTempMsg(self.ArrowsStr + 'Pattern: ' + s, 500);
+			self.OnSendTempMsg(self.ArrowsStr + 'Pattern: ' + s, 500)
 
 	def Jog(self, event):
 		if self.JogSource == 0:
@@ -356,6 +358,7 @@ class TMackieCU():
 				return
 			else:
 				self.OnSendTempMsg(self.ArrowsStr + 'Free jog ' + str(event.data1), 500)
+		self.UpdateLEDs()
 
 
 	def OnMidiMsg(self, event):
@@ -414,6 +417,10 @@ class TMackieCU():
 					device.processMIDICC(event)
 				elif self.ColT[event.midiChan].SliderEventID >= 0:
 					# slider (mixer track volume)
+					if self.ColT[event.midiChan].TrackNum >= 0: 
+						if mixer.trackNumber != self.ColT[event.midiChan].TrackNum:
+							mixer.setTrackNumber(self.ColT[event.midiChan].TrackNum)
+
 					event.handled = True
 					mixer.automateEvent(self.ColT[event.midiChan].SliderEventID, self.AlphaTrack_SliderToLevel(event.inEv + 0x2000), midi.REC_MIDIController, self.SmoothSpeed)
 					# hint
@@ -450,9 +457,16 @@ class TMackieCU():
 
 					if event.data1 == 0x34: # display mode
 						if event.data2 > 0:
-							self.MeterMode = (self.MeterMode + 1) % 3
-							self.OnSendTempMsg(self.MackieCU_MeterModeNameT[self.MeterMode])
-							self.UpdateMeterMode()
+							if self.Shift:
+								self.ExtenderPos = abs(self.ExtenderPos - 1)
+								self.FirstTrackT[self.FirstTrack] = 1
+								self.SetPage(self.Page)
+								self.OnSendTempMsg('Extender on ' + self.MackieCU_ExtenderPosT[self.ExtenderPos], 1500)
+							else:
+								self.MeterMode = (self.MeterMode + 1) % 3
+								self.OnSendTempMsg(self.MackieCU_MeterModeNameT[self.MeterMode])
+								self.UpdateMeterMode()
+								device.dispatch(0, midi.MIDI_NOTEON + (event.data1 << 8) + (event.data2 << 16) )
 					elif event.data1 == 0x35: # time format
 						if event.data2 > 0:
 							ui.setTimeDispMin()
@@ -543,6 +557,7 @@ class TMackieCU():
 							n = event.data1 - 0x28
 							self.OnSendTempMsg(self.MackieCU_PageNameT[n], 500)
 							self.SetPage(n)
+							device.dispatch(0, midi.MIDI_NOTEON + (event.data1 << 8) + (event.data2 << 16) )
 
 					elif event.data1 == MackieCUNote_Shift: # self.Shift
 						self.Shift = event.data2 > 0
@@ -715,6 +730,7 @@ class TMackieCU():
 
 							ui.showWindow(midi.widMixer)
 							ui.setFocused(midi.widMixer)
+							self.UpdateLEDs()
 							mixer.setTrackNumber(self.ColT[i].TrackNum, midi.curfxScrollToMakeVisible | midi.curfxMinimalLatencyUpdate)
 
 							if self.Control: # Link channel to track
@@ -753,13 +769,7 @@ class TMackieCU():
 	def SendMsg(self, Msg, Row = 0):
 
 		ID = int.from_bytes(b'\xF0\x00\x00\x66\x14\x12', byteorder='little')
-		device.sendMsgGeneric(ID, Msg, self.LastMsgT[Row], (self.LastMsgLen + 1) * Row)
-
-	def EmptyLastMsgT(self):
-
-		for m in range(0, self.LastMsgLen + 1):
-			self.LastMsgT[0] = '0'
-			self.LastMsgT[1] = '0'
+		device.sendMsgGeneric(ID, Msg, '', (self.LastMsgLen + 1) * Row)
 
 	# update the CU time display
 	def SendTimeMsg(self, Msg):
@@ -804,25 +814,32 @@ class TMackieCU():
 	def UpdateTextDisplay(self):
 
 		s1 = ''
+		s2 = ''
 		for m in range(0, len(self.ColT) - 1):
 			s = ''
+			sa= ''
 			if self.Page == MackieCUPage_Free:
 				s = '  ' + utils.Zeros(self.ColT[m].TrackNum + 1, 2, ' ')
 			elif self.Page == MackieCUPage_FX:
 				s = DisplayName(self.ColT[m].TrackName)
 			else:
 				s = mixer.getTrackName(self.ColT[m].TrackNum, 6)
+				sa='   '+str(self.ColT[m].TrackNum)+' '
 				
 			for n in range(1, 7 - len(s) + 1):
 				s = s + ' '
+			for n in range(1, 7 - len(sa) + 1):
+				sa = sa +' '
 			s1 = s1 + s
+			s2 = s2 + sa
 
-		self.TempMsgT[0] = s1
+		self.TempMsgT[0] = s1+s2
 		if self.CurMeterMode == 0:
 			if self.TempMsgCount == 0:
 				self.UpdateTempMsg()
 		else:
 			self.SendMsg(s1, 1)
+			self.SendMsg(s2, 2)
 
 	def UpdateMeterMode(self):
 
@@ -846,7 +863,6 @@ class TMackieCU():
 		else:
 			self.TempMsgCount = 500 // 48 + 1
 
-		self.EmptyLastMsgT()
 		self.MeterMax = 0xD + int(self.CurMeterMode == 1) # $D for horizontal, $E for vertical meters
 		self.ActivityMax = 0xD - int(self.CurMeterMode == 1) * 6
 
@@ -880,10 +896,15 @@ class TMackieCU():
 		receiverCount = device.dispatchReceiverCount()
 		if receiverCount == 0:
 			self.SetFirstTrack(self.FirstTrackT[self.FirstTrack])
-		else:
-			for n in range(0, receiverCount):
-				device.dispatch(n, midi.MIDI_NOTEON + (0x7F << 8) + (self.FirstTrackT[self.FirstTrack] + (n * 8) << 16))
-			self.SetFirstTrack(self.FirstTrackT[self.FirstTrack] + receiverCount * 8)
+		elif self.Page == oldPage:
+			if self.ExtenderPos == ExtenderLeft:
+				for n in range(0, receiverCount):
+					device.dispatch(n, midi.MIDI_NOTEON + (0x7F << 8) + (self.FirstTrackT[self.FirstTrack] + (n * 8) << 16))
+				self.SetFirstTrack(self.FirstTrackT[self.FirstTrack] + receiverCount * 8)
+			elif self.ExtenderPos == ExtenderRight:
+				self.SetFirstTrack(self.FirstTrackT[self.FirstTrack])
+				for n in range(0, receiverCount):
+					device.dispatch(n, midi.MIDI_NOTEON + (0x7F << 8) + (self.FirstTrackT[self.FirstTrack] + ((n + 1) * 8) << 16))
 
 		if self.Page == MackieCUPage_Free:
 
@@ -1233,7 +1254,7 @@ class TMackieCU():
 			device.midiOutNewMsg((0x71 << 8) + midi.TranzPort_OffOnT[ui.getTimeDispMin()], 3)
 			device.midiOutNewMsg((0x72 << 8) + midi.TranzPort_OffOnT[not ui.getTimeDispMin()], 4)
 			# self.Page
-			for m in range(0,  5):
+			for m in range(0,  6):
 			  device.midiOutNewMsg(((0x28 + m) << 8) + midi.TranzPort_OffOnT[m == self.Page], 5 + m)
 			# changed flag
 			device.midiOutNewMsg((MackieCUNote_Save << 8) + midi.TranzPort_OffOnT[general.getChangedFlag() > 0], 11)
@@ -1258,10 +1279,13 @@ class TMackieCU():
 			# focused windows
 			device.midiOutNewMsg((MackieCUNote_User << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widBrowser)], 20)
 			device.midiOutNewMsg((MackieCUNote_MidiTracks << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widPlaylist)], 21)
-			device.midiOutNewMsg((MackieCUNote_Inputs << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 22)
+			BusLed = ui.getFocused(midi.widMixer) & (self.ColT[0].TrackNum >= 100)
+			OutputLed = ui.getFocused(midi.widMixer) & (self.ColT[0].TrackNum >= 0) & (self.ColT[0].TrackNum <= 1)
+			InputLed = ui.getFocused(midi.widMixer) & (not OutputLed) & (not BusLed)
+			device.midiOutNewMsg((MackieCUNote_Inputs << 8) + midi.TranzPort_OffOnT[InputLed], 22)
 			device.midiOutNewMsg((MackieCUNote_AudioInst << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 23)
-			device.midiOutNewMsg((MackieCUNote_Buses << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 24)
-			device.midiOutNewMsg((MackieCUNote_Outputs << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widMixer)], 25)
+			device.midiOutNewMsg((MackieCUNote_Buses << 8) + midi.TranzPort_OffOnT[BusLed], 24)
+			device.midiOutNewMsg((MackieCUNote_Outputs << 8) + midi.TranzPort_OffOnT[OutputLed], 25)
 
 			#device.midiOutNewMsg((MackieCUNote_Write << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 21)
 
