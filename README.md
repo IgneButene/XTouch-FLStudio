@@ -39,6 +39,8 @@ WHAT'S INCLUDED:
 *Arrows next to the jog wheel can be used for navigation
 *Zoom - when holding the central zoom button and using arrows, vertical and horizontal zoom activates on the playlist
 
+*Control + Select links current Channel to selected Mixer Track
+
 **Selecting mixer track when touching faders
 **Mixer track numbers on the screens
 
