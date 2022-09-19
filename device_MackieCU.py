@@ -13,6 +13,7 @@ import playlist
 import ui
 import channels
 import plugins
+import mcu_colors
 
 import midi
 import utils
@@ -184,6 +185,9 @@ class TMackieCU():
 		self.ExtenderPos = ExtenderLeft
 
 		self.CurPluginID = -1
+
+		self.__lastScreenColors = [0,0,0,0,0,0,0,0]
+		self.__productId = 0x14 # productID used by MCU protocol
 
 	def OnInit(self):
 
@@ -848,6 +852,16 @@ class TMackieCU():
 			self.SendMsg(s1, 1)
 			self.SendMsg(s2, 2)
 
+		# Update colors
+		if self.Page == MackieCUPage_Free:
+			self.SetScreenColors() # all white
+		else:
+			colorArr = []
+			for m in range(0, len(self.ColT) - 1):
+				c = mixer.getTrackColor(self.ColT[m].TrackNum)
+				colorArr.append(c)
+			self.SetScreenColors(colorArr)
+
 	def UpdateMeterMode(self):
 
 		# force vertical (activity) meter mode for free controls self.Page
@@ -1325,6 +1339,21 @@ class TMackieCU():
 		if device.isAssigned():
 			device.midiOutSysex(bytes([0xF0, 0x00, 0x00, 0x66, 0x14, 0x0B, Minutes, 0xF7]))
 
+	def SetScreenColors(self, colorArray = [-10261391,-10261391,-10261391,-10261391,-10261391,-10261391,-10261391,-10261391], skipIsAssignedCheck: bool = False):
+		""" Sets the colors of the screens (all white by default) """
+		if len(colorArray) != 8:
+			return
+		if colorArray == self.__lastScreenColors:
+			return
+		if skipIsAssignedCheck or device.isAssigned():
+			sysex = bytearray([0xF0, 0x00, 0x00, 0x66, self.__productId, 0x72])
+			for color in colorArray:
+				sysex.append(mcu_colors.GetMcuColor(color))
+			sysex.append(0xF7)
+			device.midiOutSysex(bytes(sysex))
+			self.__lastScreenColors = colorArray
+
+
 MackieCU = TMackieCU()
 
 def OnInit():
@@ -1383,5 +1412,3 @@ def DisplayName(name):
 	shortName += lastWord[1:]
 			
 	return shortName[0:7]
-
-
