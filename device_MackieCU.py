@@ -55,7 +55,7 @@ MackieCUNote_Control = 0x48
 MackieCUNote_Alt = 0x49
 
 # Sections
-MackieCUNote_MidiTracks = 0x3E #Patters
+MackieCUNote_MidiTracks = 0x3E #Patterns
 MackieCUNote_Inputs = 0x3F #Mixer Tracks
 MackieCUNote_AudioTracks = 0x40 #Channels
 MackieCUNote_AudioInst = 0x41 #TODO
@@ -358,6 +358,13 @@ class TMackieCU():
 				return
 			else:
 				self.OnSendTempMsg(self.ArrowsStr + 'Free jog ' + str(event.data1), 500)
+		elif self.JogSource == MackieCUNote_AudioTracks:
+			ui.showWindow(midi.widPlaylist)
+			ui.setFocused(midi.widPlaylist)
+			#TODO: when selectTrack works, implment jogging
+			#if event.outEv != 0:
+			#	print(playlist.selectTrack(5))
+
 		self.UpdateLEDs()
 
 
@@ -973,6 +980,7 @@ class TMackieCU():
 					center = self.ColT[Num].KnobCenter
 					if self.ColT[Num].KnobEventID >= 0:
 						m = mixer.getEventValue(self.ColT[Num].KnobEventID, midi.MaxInt, False)
+
 						if center < 0:
 							if self.ColT[Num].KnobResetEventID == self.ColT[Num].KnobEventID:
 								center = int(m !=  self.ColT[Num].KnobResetValue)
@@ -993,8 +1001,8 @@ class TMackieCU():
 						if self.Page == MackieCUPage_FX:
 							# Plugin Parameter Value
 							paramValue = plugins.getParamValue(int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
-							data1 = int(paramValue)
-							#TODO fix when getParamValue starts working
+							# 32..43
+							data1 = round(paramValue * 11 + 32)
 
 					device.midiOutNewMsg(midi.MIDI_CONTROLCHANGE + ((MackieCUNote_Channel_Previous + Num) << 8) + (data1 << 16), self.ColT[Num].LastValueIndex)
 
@@ -1101,7 +1109,7 @@ class TMackieCU():
 							self.ColT[m].CurID = mixer.getTrackPluginId(mixer.trackNumber(), m + self.CurPluginOffset)
 							if m + self.PluginParamOffset < plugins.getParamCount(mixer.trackNumber(), self.CurPluginID + self.CurPluginOffset):
 								self.ColT[m].TrackName = plugins.getParamName(m + self.PluginParamOffset, mixer.trackNumber(), self.CurPluginID + self.CurPluginOffset)
-							self.ColT[m].KnobMode = 2
+							self.ColT[m].KnobMode = 5
 							self.ColT[m].KnobEventID = -1
 							
 					elif self.Page == MackieCUPage_EQ:
@@ -1178,6 +1186,14 @@ class TMackieCU():
 			if s !=  '':
 				s = ': ' + s
 			self.OnSendTempMsg(self.ColT[Num].KnobName + s)
+		elif self.ColT[Num].KnobMode == 5:
+			if self.Page == MackieCUPage_FX:
+				n = plugins.getParamValue(int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
+				if (n + Value / 127 >= 0) & (n + Value / 127 <= 1):
+					plugins.setParamValue(round(n + Value / 127, 2), int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
+					self.UpdateColT()
+					self.UpdateLEDs()
+					self.UpdateTextDisplay()
 
 	def SetFirstTrack(self, Value):
 
@@ -1255,7 +1271,7 @@ class TMackieCU():
 			device.midiOutNewMsg((0x72 << 8) + midi.TranzPort_OffOnT[not ui.getTimeDispMin()], 4)
 			# self.Page
 			for m in range(0,  6):
-			  device.midiOutNewMsg(((0x28 + m) << 8) + midi.TranzPort_OffOnT[m == self.Page], 5 + m)
+				device.midiOutNewMsg(((0x28 + m) << 8) + midi.TranzPort_OffOnT[m == self.Page], 5 + m)
 			# changed flag
 			device.midiOutNewMsg((MackieCUNote_Save << 8) + midi.TranzPort_OffOnT[general.getChangedFlag() > 0], 11)
 			# metronome
@@ -1267,9 +1283,9 @@ class TMackieCU():
 			# use RUDE SOLO to show if any track is armed for recording
 			b = 0
 			for m in range(0,  mixer.trackCount()):
-			  if mixer.isTrackArmed(m):
-			    b = 1 + int(r)
-			    break
+				if mixer.isTrackArmed(m):
+					b = 1 + int(r)
+					break
 
 			device.midiOutNewMsg((0x73 << 8) + midi.TranzPort_OffOnBlinkT[b], 16)
 			# smoothing
@@ -1286,6 +1302,7 @@ class TMackieCU():
 			device.midiOutNewMsg((MackieCUNote_AudioInst << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 23)
 			device.midiOutNewMsg((MackieCUNote_Buses << 8) + midi.TranzPort_OffOnT[BusLed], 24)
 			device.midiOutNewMsg((MackieCUNote_Outputs << 8) + midi.TranzPort_OffOnT[OutputLed], 25)
+			device.midiOutNewMsg((MackieCUNote_AudioTracks << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widPlaylist)], 26)
 
 			#device.midiOutNewMsg((MackieCUNote_Write << 8) + midi.TranzPort_OffOnT[ui.getFocused(midi.widChannelRack)], 21)
 
@@ -1296,7 +1313,7 @@ class TMackieCU():
 
 	def OnWaitingForInput(self):
 
-	  self.SendTimeMsg('..........')
+		self.SendTimeMsg('..........')
 
 	def UpdateClicking(self): # switch self.Clicking for transport buttons
 
