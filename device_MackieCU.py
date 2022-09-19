@@ -1203,8 +1203,15 @@ class TMackieCU():
 		elif self.ColT[Num].KnobMode == 5:
 			if self.Page == MackieCUPage_FX:
 				n = plugins.getParamValue(int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
-				if (n + Value / 127 >= 0) & (n + Value / 127 <= 1):
-					plugins.setParamValue(round(n + Value / 127, 2), int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
+				s = round(n + Value / 127, 2)
+				if Value == midi.MaxInt:
+					if n == 0:
+						s = 1
+					else:
+						s = 0
+				
+				if (s >= 0) & (s <= 1):
+					plugins.setParamValue(s, int(Num + self.PluginParamOffset), mixer.trackNumber(), int(self.CurPluginID + self.CurPluginOffset))
 					self.UpdateColT()
 					self.UpdateLEDs()
 					self.UpdateTextDisplay()
