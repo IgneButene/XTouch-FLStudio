@@ -168,8 +168,8 @@ class TMackieCU():
 		self.Clicking = False
 		self.Scrub = False
 		self.Flip = False
-		self.MeterMode = 0
-		self.CurMeterMode = 0
+		self.MeterMode = 1
+		self.CurMeterMode = 1
 		self.Page = 0
 		self.SmoothSpeed = 0
 		self.MeterMax = 0
