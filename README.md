@@ -2,21 +2,15 @@
 Behringer X-Touch for FL Studio Script (based on FL Studio MCU implementation)
 
 
-## WHAT'S INCLUDED: ##
+# WHAT'S INCLUDED: #
 
-* Sends and Pan/Surround (stereo separation) swapped to reflect the labels
-* Plugins now show their respective names
-* Plugins allow navigating between them to see all 10 (using channel and fader bank buttons)
-* Plugins when clicked on, take you to a list of plugin parameters, where you can navigate. 
-* Plugin parameters can be adjusted using knobs
-* When knob is pressed it flips between 0 and 1 (min and max value)
----
+## Jogging ##
 * Midi Tracks - focuses Playlist and upon press and jog wheel runs through patterns
 * Inputs - focuses Mixer and sets goes to the location of currently selected Mixer track (it is then assigned to Fader 1)
-* Audio Tracks - free for now to use wherever you like
+* Audio Tracks - move between the playlist tracks
 * Audio Inst - focuses Channel Rack/Step Seq. and jog wheel goes through the instruments
-* Aux - free for now
-* Buses - focuses Mixer and sets fader 1 to first insert track (as far as it is track number > 99)
+* Aux - moves through the docked channels (mixes)
+* Buses - focuses Mixer and moves through the channels which names end with BUS or MIX
 * Outputs - focuses Mixer and sets fader 1 as Master track
 * User - focuses Browser
 ---
@@ -41,11 +35,30 @@ Behringer X-Touch for FL Studio Script (based on FL Studio MCU implementation)
 * Arrows next to the jog wheel can be used for navigation
 * Zoom - when holding the central zoom button and using arrows, vertical and horizontal zoom activates on the playlist
 ---
-* Control + Select links current Channel to selected Mixer Track
+* Option + Select links current Channel to selected Mixer Track
 
 * Selecting mixer track when touching faders
 * Mixer track numbers on the screens
 ---
 * Some other bugs fixed and Python constants added for some of the buttons/faders
 
+## Sends ##
+* Toggle of volume (for sidechain) can be done by holding Control + Encoder
+
+## Plugins ##
+* Plugins can be opened to changed their respective parameters via encoders
+* Plugins screen can be opened/closed (Control + Encoder)
+* Plugins values can be fine-tuned by holding Shift + Encoder, Alt + Encoder (or Control + Encoder for faster changes)
+* Plugin presets can be shuffled (Control + Jog Wheel) while the plugin is open
+* When knob is pressed it flips between min and max value
+
+## Instruments ##
+* Instruments (channel rack) are now displayed on the screen
+* Instrument interface can be opened/closed (Control + Encoder)
+* Plugins can be controller via encoders
+
+
 I have not touched the extender script simply because I don't own one and I wouldn't be able to test it.
+
+## AKNOWLEDGEMENT ##
+* The latest version of the script is merged with the refactored version by @bramdebouvere (https://github.com/bramdebouvere/fltouch)
