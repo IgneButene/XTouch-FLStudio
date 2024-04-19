@@ -291,7 +291,18 @@ class TMackieCU(mcu_base_class.McuBaseClass):
                                 else: # mixer
                                     ui.showWindow(midi.widMixer)
                                     ui.setFocused(midi.widMixer)
-                                    if not self.McuDeviceModifiers.Control and not self.McuDeviceModifiers.Shift:
+
+                                    if self.McuDeviceModifiers.Alt: # Pin/unpin track
+                                        if self.PinnedTracks.get(str(i)) is not None:
+                                            self.PinnedTracks[str(i)] = None
+                                            self.Tracks[i].Pinned = False
+                                            self.UpdateTrack(i)
+                                        else:
+                                            self.PinnedTracks[str(i)] = self.Tracks[i].copy()
+                                            self.Tracks[i].Pinned = True
+                                            self.UpdateTrack(i)
+
+                                    elif not self.McuDeviceModifiers.Control and not self.McuDeviceModifiers.Shift:
                                         mixer.deselectAll()
                                     if self.McuDeviceModifiers.Control:
                                         mixer.selectTrack(self.Tracks[i].TrackNum, -1)
@@ -334,9 +345,9 @@ class TMackieCU(mcu_base_class.McuBaseClass):
                                 else:
                                     mixer.armTrack(self.Tracks[event.data1].TrackNum)
                                     if mixer.isTrackArmed(self.Tracks[event.data1].TrackNum):
-                                        self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum) + ' recording to ' + mixer.getTrackRecordingFileName(self.Tracks[event.data1].TrackNum))
+                                        self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum, self.Tracks[event.data1].Pinned) + ' recording to ' + mixer.getTrackRecordingFileName(self.Tracks[event.data1].TrackNum))
                                     else:
-                                        self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum) + ' unarmed')
+                                        self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum, self.Tracks[event.data1].Pinned) + ' unarmed')
 
                         event.handled = True
                 else:

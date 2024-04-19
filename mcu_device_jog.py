@@ -206,7 +206,7 @@ class McuDeviceJog:
             s = channels.getChannelName(channels.channelNumber())
             self.McuDeviceMessages.SendMsg(mcu_constants.ArrowsStr + 'Channel: ' + s)
         elif Index == 1:
-            self.McuDeviceMessages.SendMsg(mcu_constants.ArrowsStr + 'Mixer track: ' + tracknames.GetAsciiSafeTrackName(mixer.trackNumber()))
+            self.McuDeviceMessages.SendMsg(mcu_constants.ArrowsStr + 'Mixer track: ' + tracknames.GetAsciiSafeTrackName(mixer.trackNumber(), False))
         elif Index == 2:
             s = patterns.getPatternName(patterns.patternNumber())
             self.McuDeviceMessages.SendMsg(mcu_constants.ArrowsStr + 'Pattern: ' + s)

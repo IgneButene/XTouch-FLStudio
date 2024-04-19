@@ -36,6 +36,7 @@ Behringer X-Touch for FL Studio Script (based on FL Studio MCU implementation)
 * Zoom - when holding the central zoom button and using arrows, vertical and horizontal zoom activates on the playlist
 ---
 * Option + Select links current Channel to selected Mixer Track
+* Alt + Select pins the Mixer Track to its position
 
 * Selecting mixer track when touching faders
 * Mixer track numbers on the screens

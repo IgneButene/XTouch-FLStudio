@@ -39,6 +39,8 @@ class McuBaseClass():
                  automation: mcu_device_automation.McuDeviceAutomation):
     
         self.Tracks = [mcu_track.McuTrack() for i in range(0)] # empty array, since "import typing" is not supported
+        self.PinnedTracks = dict()
+
 
         self.Shift = False # indicates that the shift button is pressed
 
@@ -114,7 +116,7 @@ class McuBaseClass():
             if (self.Page == mcu_pages.Effects) | (self.Page == mcu_pages.Instruments):
                 s = self.DisplayName(self.Tracks[m].SliderName)
             else:
-                s = tracknames.GetAsciiSafeTrackName(self.Tracks[m].TrackNum, 7)
+                s = tracknames.GetAsciiSafeTrackName(self.Tracks[m].TrackNum, self.Tracks[m].Pinned, 7)
             for n in range(1, 7 - len(s) + 1):
                 s = s + ' '
             s1 = s1 + s
@@ -178,7 +180,7 @@ class McuBaseClass():
                 else:
                     self.Tracks[i].BaseEventID = mixer.getTrackPluginId(self.Tracks[i].TrackNum, 0)
                 self.Tracks[i].SliderEventID = self.Tracks[i].BaseEventID + midi.REC_Mixer_Vol
-                s = tracknames.GetAsciiSafeTrackName(self.Tracks[i].TrackNum)
+                s = tracknames.GetAsciiSafeTrackName(self.Tracks[i].TrackNum, self.Tracks[i].Pinned)
                 self.Tracks[i].SliderName = s + ' - Vol'
 
                 self.Tracks[i].KnobEventID = -1
@@ -191,11 +193,11 @@ class McuBaseClass():
                 if self.Page == mcu_pages.Pan:
                     self.Tracks[i].KnobEventID = self.Tracks[i].BaseEventID + midi.REC_Mixer_Pan
                     self.Tracks[i].KnobResetEventID = self.Tracks[i].KnobEventID
-                    self.Tracks[i].KnobName = tracknames.GetAsciiSafeTrackName(self.Tracks[i].TrackNum) + ' - ' + 'Pan'
+                    self.Tracks[i].KnobName = tracknames.GetAsciiSafeTrackName(self.Tracks[i].TrackNum, self.Tracks[i].Pinned) + ' - ' + 'Pan'
                 elif self.Page == mcu_pages.Stereo:
                     self.Tracks[i].KnobEventID = self.Tracks[i].BaseEventID + midi.REC_Mixer_SS
                     self.Tracks[i].KnobResetEventID = self.Tracks[i].KnobEventID
-                    self.Tracks[i].KnobName = tracknames.GetAsciiSafeTrackName(self.Tracks[i].TrackNum) + ' - ' + 'Sep'
+                    self.Tracks[i].KnobName = tracknames.GetAsciiSafeTrackName(self.Tracks[i].TrackNum, self.Tracks[i].Pinned) + ' - ' + 'Sep'
                 elif self.Page == mcu_pages.Sends:
                     self.Tracks[i].KnobEventID = CurID + midi.REC_Mixer_Send_First + self.Tracks[i].TrackNum
                     s = mixer.getEventIDName(self.Tracks[i].KnobEventID)
@@ -297,6 +299,12 @@ class McuBaseClass():
                         self.Tracks[i].KnobCenter = -1
                         self.Tracks[i].KnobResetValue = round(12800 * midi.FromMIDI_Max / 16000)
                         self.Tracks[i].KnobResetEventID = self.Tracks[i].KnobEventID
+
+            # override with pinned tracks
+            if self.PinnedTracks.get(str(i)) != None:
+                self.Tracks[i] = self.PinnedTracks[str(i)].copy()
+                self.Tracks[i].Pinned = True
+                self.Tracks[i].SliderName += '*';
 
             self.UpdateTrack(i)
 

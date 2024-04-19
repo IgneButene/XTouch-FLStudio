@@ -124,12 +124,15 @@ TransliterateMap = {
     u'Џ': 'Dž'
 }
 
-def GetAsciiSafeTrackName(index: int, maxLength: int = 0) -> str:
+def GetAsciiSafeTrackName(index: int, pinned: bool, maxLength: int = 0) -> str:
     ''' Gets an ASCII compatible track name value '''
     unicodeTrackName = mixer.getTrackName(index, maxLength)
     transliterated = TransliterateToAscii(unicodeTrackName)
     if maxLength > 0:
         transliterated = transliterated[:maxLength]
+        
+    if pinned:
+        transliterated = transliterated[:maxLength - 1] + '*'
     return transliterated
 
 def TransliterateToAscii(unicodeValue):

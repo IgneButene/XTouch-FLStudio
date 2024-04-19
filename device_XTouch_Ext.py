@@ -233,9 +233,9 @@ class TMackieCU_Ext(mcu_base_class.McuBaseClass):
                         if event.data2 > 0:
                             mixer.armTrack(self.Tracks[event.data1].TrackNum)
                             if mixer.isTrackArmed(self.Tracks[event.data1].TrackNum):
-                                self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum) + ' recording to ' + mixer.getTrackRecordingFileName(self.Tracks[event.data1].TrackNum))
+                                self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum, self.Tracks[event.data1].Pinned) + ' recording to ' + mixer.getTrackRecordingFileName(self.Tracks[event.data1].TrackNum))
                             else:
-                                self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum) + ' unarmed')
+                                self.McuDeviceMessages.SendMsg(tracknames.GetAsciiSafeTrackName(self.Tracks[event.data1].TrackNum, self.Tracks[event.data1].Pinned) + ' unarmed')
 
                     event.handled = True
                 else:
